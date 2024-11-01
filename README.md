@@ -1,7 +1,3 @@
-Here's the README for the "Hermes" project in English:
-
----
-
 # Hermes
 
 Hermes is a project designed for managing account balances and frozen balances, with a focus on ensuring synchronization and consistency in a distributed environment. The system is built to handle user balance changes safely, preventing race conditions.
