@@ -1,0 +1,9 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/hermes
+      connection-pool:
+        min-size: 100
+        max-size: 2048
+        max-wait-time: 120000  # in milliseconds
+        max-connection-idle-time: 60000  # in milliseconds
