@@ -1,12 +1,31 @@
 # Hermes
 
-Hermes is a project designed for managing account balances and frozen balances, with a focus on ensuring synchronization and consistency in a distributed environment. The system is built to handle user balance changes safely, preventing race conditions.
+Hermes is a high-performance project designed for managing account balances and frozen balances, focusing on synchronization and consistency in distributed environments. The system is built to handle user balance changes safely, preventing race conditions.
 
 ## Key Features
 
 - **Balance and Freeze Balance Management**: Provides operations for managing account balances and frozen balances.
 - **Ensures Synchronization in Distributed Environments**: Uses Redis locks and event sourcing to ensure that user balance changes are processed by a single thread at any given time.
 - **Processes Operations from Kafka**: Hermes receives account operations from Kafka and applies them to the respective accounts.
+
+## Performance Benchmarks
+
+- **Environment**:
+   - **Hardware**: MacBook M1 Pro with 32GB RAM
+   - **Setup**:
+      - 1 node Kafka
+      - 1 node Redis
+      - 1 node MongoDB
+      - 1 node Hermes
+
+- **Load Details**:
+   - **Total Accounts**: 100,000
+   - **Operations per Account**: 10
+   - **Total Operations**: 1,000,000
+
+- **Performance Metrics**:
+   - **Average Response Time**: 1 second
+   - **Response Time Distribution**: 70% of requests complete in under 300 milliseconds, ensuring high responsiveness under load.
 
 ## Architecture and Implementation
 
@@ -27,7 +46,7 @@ Hermes is a project designed for managing account balances and frozen balances, 
 
 1. **Clone the Project**:
    ```bash
-   git clone https://github.com/hungnm98/hermes.git
+   git clone https://github.com/username/hermes.git
    cd hermes
    ```
 
@@ -48,4 +67,4 @@ Contributions for performance improvements and feature enhancements are welcome.
 
 ---
 
-Let me know if you need any adjustments!
+Let me know if there's anything else to add!

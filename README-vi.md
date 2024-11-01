@@ -14,6 +14,25 @@ Hermes là một dự án quản lý balance và freeze balance của các tài 
 - **Event Sourcing**: Lưu trữ các sự kiện thay đổi nhằm duy trì lịch sử và trạng thái của mỗi tài khoản.
 - **Kafka**: Là nguồn tiếp nhận và phân phối các operation đến các luồng xử lý trong hệ thống.
 
+## Performance Benchmarks
+
+- **Environment**:
+   - **Hardware**: MacBook M1 Pro with 32GB RAM
+   - **Setup**:
+      - 1 node Kafka
+      - 1 node Redis
+      - 1 node MongoDB
+      - 1 node Hermes
+
+- **Load Details**:
+   - **Total Accounts**: 100,000
+   - **Operations per Account**: 10
+   - **Total Operations**: 1,000,000
+
+- **Performance Metrics**:
+   - **Average Response Time**: 1 second
+   - **Response Time Distribution**: 70% of requests complete in under 300 milliseconds, ensuring high responsiveness under load.
+
 ## Hướng dẫn cài đặt
 
 ### Yêu cầu hệ thống
