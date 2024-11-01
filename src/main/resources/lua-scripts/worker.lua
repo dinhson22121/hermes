@@ -18,12 +18,14 @@ function Worker.unpick_account(worker_id, account_id)
     local account_key = Worker.account_key(account_id)
     local current_worker_id = redis.call("GET", account_key)
 
+    --Worker.remove_account(worker_id, account_id)
     if current_worker_id == worker_id then
         redis.call("DEL", account_key)
-        return true
+        return { "ok", "" }
+    else
+        return { "fail", "current worker is not you" }
     end
 
-    return false
 end
 
 function Worker.add_account(worker_id, account_id)
@@ -37,14 +39,15 @@ end
 function Worker.shutdown(worker_id)
     local account_ids = redis.call("SMEMBERS", Worker.list_account_key(worker_id))
     if Worker.is_empty(account_ids) then
-        return true
+        return { "ok", "" }
     end
 
     for _, account_id in ipairs(account_ids) do
         Worker.unpick_account(worker_id, account_id)
     end
 
-    return true
+    redis.call("DEL", Worker.list_account_key(worker_id))
+    return { "ok", "" }
 end
 
 function Worker.list_account_key(worker_id)
