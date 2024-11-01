@@ -1,4 +1,4 @@
-package net.devnguyen.hermes;
+package net.devnguyen.hermes.service;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

@@ -35,10 +35,8 @@ public class WorkerAccountLocker {
     public boolean pickAccount(String workerId, String accountId) {
         int ttl = 30;
         String script = luaScript("""
-                local account_key = KEYS[1];
-                local worker_key = KEYS[2];
-                local account_id = ARGV[1];
-                local worker_id = ARGV[2];
+                local worker_id = ARGV[1];
+                local account_id = ARGV[2];
                 local ttl = tonumber(ARGV[3]);
                 
                 return Worker.pick_account(worker_id, account_id, ttl);
@@ -51,18 +49,44 @@ public class WorkerAccountLocker {
                         script,
                         RScript.ReturnType.MULTI,
                         lockKeys,
-                        accountId, workerId, String.valueOf(ttl));
+                        workerId, accountId, String.valueOf(ttl));
 
         List<String> results = (List<String>) resultScript;
 
         var ok = results.size() == 2 && results.get(0).equalsIgnoreCase("OK");
         if (!ok) {
-            log.info("lua script result: {}", resultScript);
+            log.info("pickAccount: lua script result: {}", resultScript);
         }
         return ok;
     }
 
-    public void shutdown(String workerId){
+    public void unpickAccount(String workerId, String accountId) {
+        String script = luaScript("""
+                local worker_id = ARGV[1];
+                local account_id = ARGV[2];
+                local ttl = tonumber(ARGV[3]);
+                
+                return Worker.unpick_account(worker_id, account_id);
+                """);
+
+        List<Object> lockKeys = new ArrayList<>(List.of(workerRedisKey(workerId), accountRedisKey(accountId)));
+
+        var resultScript = redissonClient.getScript()
+                .eval(RScript.Mode.READ_WRITE,
+                        script,
+                        RScript.ReturnType.MULTI,
+                        lockKeys,
+                        workerId, accountId);
+
+        List<String> results = (List<String>) resultScript;
+
+        var ok = results.size() == 2 && results.get(0).equalsIgnoreCase("OK");
+        if (!ok) {
+            log.info("unpick result: lua script result: {}", resultScript);
+        }
+    }
+
+    public void shutdown(String workerId) {
         String script = luaScript("""
                 local worker_id = ARGV[1];
                 
@@ -78,7 +102,7 @@ public class WorkerAccountLocker {
                         lockKeys,
                         workerId);
 
-        log.info("lua script result: {}", resultScript);
+        log.info("shutdown: lua script result: {}", resultScript);
     }
 
 }

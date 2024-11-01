@@ -1,10 +1,7 @@
 package net.devnguyen.hermes.service;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.devnguyen.hermes.HVirtualThreadExecutor;
 import net.devnguyen.hermes.HermesApplication;
 import net.devnguyen.hermes.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +9,6 @@ import org.springframework.stereotype.Service;
 
 
 import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -109,26 +102,25 @@ public class AccountOperationProcessor {
     }
 
     // Phương thức xử lý sự kiện của một user trong ThreadPool
-    private void processUserEvents(String userId) {
-//        log.info("Processing user events for {}", userId);
-        BlockingQueue<AccountOperation> queue = accountOperationQueues.get(userId);
+    private void processUserEvents(String accountId) {
+        BlockingQueue<AccountOperation> queue = accountOperationQueues.get(accountId);
 
         try {
             while (!queue.isEmpty()) {
-                // holdNodeId
-                /*
-                    if hold false
-                        throw exception
-                 */
+                if (!workerAccountLocker.pickAccount(HermesApplication.ID, accountId)) {
+                    //stop all queue and reject operation
+                    log.error("operation break because other worker picked account");
+                }
                 processEvent(queue.poll());
             }
         } finally {
-            // redis.release(account_id)
-            AtomicBoolean processing = userProcessingStatus.computeIfAbsent(userId, k -> new AtomicBoolean(false));
+             workerAccountLocker.unpickAccount(HermesApplication.ID, accountId);
+
+            AtomicBoolean processing = userProcessingStatus.computeIfAbsent(accountId, k -> new AtomicBoolean(false));
             processing.compareAndSet(true, false);
 
             if (!queue.isEmpty() && processing.compareAndSet(false, true)) {
-                pendingUsersQueue.offer(new AccountTask(userId, queue.size()));
+                pendingUsersQueue.offer(new AccountTask(accountId, queue.size()));
                 semaphore.release();
             }
         }
