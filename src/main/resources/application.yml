@@ -9,3 +9,8 @@ spring:
         max-size: 64
         max-wait-time: 120000  # in milliseconds
         max-connection-idle-time: 60000  # in milliseconds
+
+kafka-config:
+  operation-account:
+      topic: "operation-account-topic-01"
+      group-id: "b7f61ef6-13e7-4252-97f6-94b8ff5e8450"

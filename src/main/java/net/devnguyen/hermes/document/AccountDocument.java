@@ -26,6 +26,7 @@ public class AccountDocument {
     @Field(targetType = FieldType.DECIMAL128)
     private BigDecimal freezeBalance = BigDecimal.ZERO;
 
+    private Instant firstOperationAt;
 
     private Instant createdAt;
 
