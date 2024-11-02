@@ -5,7 +5,7 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/hermes
       connection-pool:
-        min-size: 100
-        max-size: 2048
+        min-size: 1
+        max-size: 64
         max-wait-time: 120000  # in milliseconds
         max-connection-idle-time: 60000  # in milliseconds

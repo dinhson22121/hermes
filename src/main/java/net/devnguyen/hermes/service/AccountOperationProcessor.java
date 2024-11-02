@@ -136,7 +136,7 @@ public class AccountOperationProcessor {
     public void shutdown() {
         log.info("shutdown");
         threadPool.shutdown();
-        workerAccountLocker.shutdown(HermesApplication.ID);
+        workerAccountLocker.shutdown();
         //redis.destroy
     }
 }
