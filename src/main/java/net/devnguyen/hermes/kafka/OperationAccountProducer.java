@@ -5,17 +5,21 @@ import net.devnguyen.hermes.dto.AccountOperationDTO;
 import net.devnguyen.hermes.service.WorkerAccountLocker;
 import net.devnguyen.hermes.utils.Utils;
 import org.apache.kafka.clients.admin.*;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,7 +28,7 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class OperationAccountProducer {
-    @Value("${kafka-config.operation-account.topic}")
+    @Value("${kafka-config.operation-account.topic-process}")
     private String topic;
 
     private final KafkaTemplate<String, String> kafkaTemplate;
@@ -32,11 +36,12 @@ public class OperationAccountProducer {
     @Autowired
     WorkerAccountLocker workerAccountLocker;
 
-    Map<Integer, Long> partitionOffsets = new ConcurrentHashMap<>();
+    Map<Integer, AtomicLong> partitionOffsets = new ConcurrentHashMap<>();
 
     AtomicLong routerCounter = new AtomicLong(0L);
 
     AdminClient adminClient;
+
 
     public OperationAccountProducer(KafkaTemplate<String, String> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
@@ -44,28 +49,27 @@ public class OperationAccountProducer {
         Properties props = new Properties();
         props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, properties.get(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG));
         this.adminClient = AdminClient.create(props);
+
+//        build();
     }
 
-    public void senOperation(AccountOperationDTO operation) {
-        var json = Utils.toJson(operation);
+    public CompletableFuture senOperation(AccountOperationDTO operation) {
+        var json = operation.toJson();
 
         var defaultPartitionId = getBestPartitionId();
 
         var response = workerAccountLocker.getPartitionRouterForAccount(operation.getAccountId(), defaultPartitionId, false);
         if (response.isNotOk()) {
             log.error("cannot router operation, rollback or return false operation");
-            return;
+            return null;
         }
-
-
-        kafkaTemplate.send(topic, json).thenAccept(result -> {
-            var partitionId = result.getRecordMetadata().partition();
-
-//            workerAccountLocker.kafka
-
-        });
+        Integer partitionId = response.getData();
+        partitionOffsets.get(partitionId).incrementAndGet();
+        return kafkaTemplate.send(topic, partitionId, operation.getId(), json);
     }
 
+
+    @Scheduled(fixedDelay = 10 * 1000)
     public void build() {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -84,8 +88,9 @@ public class OperationAccountProducer {
 
 
             offsets.forEach((p, o) -> {
-                partitionOffsets.put(p.partition(), o.offset());
+                partitionOffsets.put(p.partition(), new AtomicLong(o.offset()));
             });
+            routerCounter.set(0);
         } catch (Exception e) {
             log.error("failed to build operation account", e);
         } finally {
@@ -95,16 +100,16 @@ public class OperationAccountProducer {
         }
     }
 
+
     public int getBestPartitionId() {
-        if (partitionOffsets.isEmpty() || routerCounter.incrementAndGet() > 10_000) {
-            build();
-            routerCounter.set(0);
-        }
+//        if (partitionOffsets.isEmpty()) {
+//            build();
+//        }
 
         AtomicInteger partitionId = new AtomicInteger();
         int offset = -1;
         partitionOffsets.forEach((p, o) -> {
-            if (offset < o) {
+            if (offset < o.get()) {
                 partitionId.set(p);
             }
         });
@@ -112,5 +117,11 @@ public class OperationAccountProducer {
         return partitionId.get();
     }
 
+
+    @KafkaListener(containerFactory = "kafkaListenerContainerFactory", topics = "${kafka-config.operation-account.topic-request}", groupId = "${kafka-config.operation-account.group-id}")
+    public void listen(ConsumerRecord<String, String> record) {
+        String value = record.value();
+        senOperation(AccountOperationDTO.readValue(value));
+    }
 
 }

@@ -29,15 +29,28 @@ public class KafkaConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(configProps);
     }
 
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(SaveOffsetsOnRebalance saveOffsetsOnRebalance) {
+    public ConcurrentKafkaListenerContainerFactory<String, String> defaultKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        return factory;
+    }
+
+    @Bean(name = "kafkaListenerManualContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerManualContainerFactory(SaveOffsetsOnRebalance saveOffsetsOnRebalance) {
         ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.getContainerProperties().setConsumerRebalanceListener(saveOffsetsOnRebalance);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
         factory.getContainerProperties().setClientId(HermesApplication.ID);
         factory.setConsumerFactory(consumerFactory());
         factory.getContainerProperties().setListenerTaskExecutor(kafkaConsumerTaskExecutor());
-        factory.setConcurrency(5);
+        factory.setConcurrency(1);
+        return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
         return factory;
     }
 

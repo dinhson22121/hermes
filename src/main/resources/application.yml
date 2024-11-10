@@ -1,3 +1,9 @@
+server:
+  port: ${SERVER_PORT:10020}
+  tomcat:
+    threads:
+      max: 1025
+    accept-count: 512
 spring:
   profiles:
     active: dev
@@ -12,5 +18,7 @@ spring:
 
 kafka-config:
   operation-account:
-      topic: "operation-account-topic-01"
+      topic-request: "operation-account-topic-request"
+      topic-process: "operation-account-topic-process"
+      topic-response: "operation-account-topic-response"
       group-id: "b7f61ef6-13e7-4252-97f6-94b8ff5e8450"

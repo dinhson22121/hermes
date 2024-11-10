@@ -121,7 +121,7 @@ public class WorkerAccountLocker {
                         script,
                         RScript.ReturnType.MULTI,
                         new ArrayList<>(),
-                        HermesApplication.ID, accountId, defaultPartition + "", isPickAccount ? "ok" : "false");
+                        accountId, defaultPartition + "", isPickAccount ? "ok" : "false");
 
         var ok = resultScript.get(0).equalsIgnoreCase("OK");
         if (!ok) {

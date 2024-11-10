@@ -16,16 +16,23 @@ Hermes is a high-performance project designed for managing account balances and 
       - 1 node Kafka
       - 1 node Redis
       - 1 node MongoDB
-      - 1 node Hermes
+      - 8 node Hermes
+      - 1 haproxy
 
-- **Load Details**:
-   - **Total Accounts**: 100,000
-   - **Operations per Account**: 10
-   - **Total Operations**: 1,000,000
+```
+wrk -t12 -c1024 -d30s --timeout 30s http://192.168.1.10:10030/tests/send-operation/stress-test
+Running 30s test @ http://192.168.1.10:10030/tests/send-operation/stress-test
+  12 threads and 1024 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   391.06ms   30.24ms 472.26ms   80.87%
+    Req/Sec   215.87     42.25   343.00     69.29%
+  77416 requests in 30.10s, 15.58MB read
+Requests/sec:   2571.94
+Transfer/sec:    529.96KB
 
-- **Performance Metrics**:
-   - **Average Response Time**: 1 second
-   - **Response Time Distribution**: 70% of requests complete in under 300 milliseconds, ensuring high responsiveness under load.
+```
+
+wrk -t12 -c400 -d15s --timeout 30s http://localhost:10020/tests/send-operation/test
 
 ## Architecture and Implementation
 

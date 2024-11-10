@@ -1,16 +1,24 @@
 local Worker = {}
 
+function Worker.pick_operation(worker_id, account_id, operation_id, ttl)
+    local account_key = Worker.account_key(account_id)
+    local operation_key = Worker.operation_key(account_id, operation_id);
+    local account_current_worker_id = redis.call("GET", account_key)
+    local operation_current_worker_id = redis.call("GET", operation_key)
+
+    return { "ok", "" }
+end
+
 function Worker.pick_account(worker_id, account_id, ttl)
     local account_key = Worker.account_key(account_id)
     local current_worker_id = redis.call("GET", account_key)
 
     if Worker.is_empty(current_worker_id) or current_worker_id == worker_id then
-        --local current_ttl = redis.call("TTL", account_key)
-        --
-        --if current_ttl < 0 or current_ttl < ttl or Worker.is_empty(current_ttl) then
-        --    current_ttl = ttl
-        --end
+        local current_ttl = redis.call("TTL", account_key)
 
+        if current_ttl < 0 or current_ttl < ttl or Worker.is_empty(current_ttl) then
+            current_ttl = ttl
+        end
         redis.call("SET", account_key, worker_id, "EX", ttl)
         Worker.add_account(worker_id, account_id)
         return { "ok", "" }
@@ -67,15 +75,18 @@ function Worker.account_key(account_id)
     return string.format("hermes:account:%s", account_id)
 end
 
--- kafka manager
+function Worker.operation_key(account_id, operation_id)
+    return string.format("hermes:account:operation:%s:%s", account_id, operation_id)
+end
 
+-- kafka manager
 function Worker.kafka_router_partition(account_id, default_partition_id, is_pick_account)
     local account_key = Worker.account_key(account_id)
     local worker_id = redis.call("GET", account_key)
     if Worker.is_empty(worker_id) then
         if is_pick_account == "ok" then
             -- hold
-            Worker.pick_account(worker_id, default_partition_id, 10)
+            Worker.pick_account(worker_id, account_id, 10)
         end
 
         return { "ok", default_partition_id, "default default_partition_id" }

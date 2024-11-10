@@ -2,10 +2,12 @@ package net.devnguyen.hermes.service;
 
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import net.devnguyen.hermes.HermesApplication;
 import net.devnguyen.hermes.dto.*;
+import org.redisson.api.RTopic;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 
 import java.math.BigDecimal;
@@ -18,6 +20,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class AccountOperationProcessor {
     @Autowired
     private AccountService accountService;
+
+
+    @Autowired
+    RedissonClient redissonClient;
 
     @Autowired
     private WorkerAccountLocker workerAccountLocker;
@@ -54,11 +60,11 @@ public class AccountOperationProcessor {
         }
 
         if (!workerAccountLocker.pickAccount(accountOperationDTO.getAccountId())) {
+            // need log to rollbar or notify slack when worker disputed account
             log.warn("Event rejected because account working in other worker: {}", accountOperationDTO.getAccountId());
             return false;
         }
 
-        // dung redis check duplicate operation
         // and insert operation to mongo
         if (!queue.offer(accountOperationDTO)) {
             log.error("Event rejected due to queue limit: {}", accountOperationDTO.getAccountId());
@@ -128,6 +134,11 @@ public class AccountOperationProcessor {
     private void processEvent(AccountOperationDTO accountOperationDTO) {
         counter.incrementAndGet();
         accountService.incrBalance(accountOperationDTO.getAccountId(), BigDecimal.valueOf(1), accountOperationDTO.getCreatedAt());
+
+        if(StringUtils.hasText(accountOperationDTO.getRequestId())){
+            RTopic rTopic = redissonClient.getTopic(accountOperationDTO.getRequestId());
+            rTopic.publish("ok");
+        }
     }
 
     @PreDestroy
@@ -135,6 +146,10 @@ public class AccountOperationProcessor {
         log.info("shutdown");
         threadPool.shutdown();
         workerAccountLocker.shutdown();
+
+        //return event pending ve kafka khac
+        // fail event topic
+
         //redis.destroy
     }
 }

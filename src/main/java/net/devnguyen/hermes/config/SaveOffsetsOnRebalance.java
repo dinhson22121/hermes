@@ -18,7 +18,7 @@ public class SaveOffsetsOnRebalance implements ConsumerRebalanceListener {
     @Autowired
     private WorkerAccountLocker workerAccountLocker;
 
-    @Value("${kafka-config.operation-account.topic}")
+    @Value("${kafka-config.operation-account.topic-process}")
     private String topic;
 
     @Override
